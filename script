@@ -1,0 +1,42 @@
+#Dominio a ser verificado
+
+$domain = “”
+
+#Arquivo contendo os nomes dos servidores a serem verificados
+#Os nomes dos servidores devem ser populados no arquivo maquinas.txt
+
+foreach ($strComputer in Get-Content C:\Scripts\maquinas.txt)
+{$strComputer + “`n” + “==========================”
+$computer = [ADSI](“WinNT://” + $strComputer + “,computer”)
+$computer.name
+
+#Coleta os usuarios que estao no grupo administrators
+#Caso o sistema esteja em portugues, deve-se alterar o grupo para "administradores"
+
+$Group = $computer.psbase.children.find(“administrators”)
+$Group.name
+
+function ListAdministrators
+
+{$members= $Group.psbase.invoke(“Members”) | %{$_.GetType().InvokeMember(“Name”, ‘GetProperty’, $null, $_, $null)}
+$members}
+
+#Lista os usuarios que estao no grupo administrators
+ListAdministrators >> C:\Scripts\admlocal.txt
+
+#Compara a lista branca com os usuários que estão no grupo administrators e remove os que não estão na lista branca
+#Os nomes dos usuarios devem ser populados na lista branca.
+
+$File1 = Get-Content C:\Scripts\admlocal.txt
+$File2 = Get-Content C:\Scripts\ListaBranca.txt
+
+ForEach ($Line in $File1)
+{
+ if ($File2 -notcontains $Line)
+  {
+    Write-Output "$Line" > c:\scripts\$strComputer_foradawhitelist.txt 
+    $Group.Remove(“WinNT://” + $domain + “/” + $Line)  
+  }
+}
+
+}
